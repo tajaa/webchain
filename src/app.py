@@ -1,6 +1,15 @@
 import streamlit as st
+from dotenv import load_dotenv
+from langchain.chains import create_history_aware_retriever
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import WebBaseLoader
+from langchain_community.vectorstores import Chroma
 from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+
+load_dotenv()
+# client = OpenAI(api_key=os.getenv("OPENAI_KEY"))
 
 
 def get_response(user_input):
@@ -10,8 +19,33 @@ def get_response(user_input):
 def get_vectorstore_from_url(url):
     # get text in document forms
     loader = WebBaseLoader(url)
-    documents = loader.load()
-    return documents
+    document = loader.load()
+    # split doucment into chunks
+    text_splitter = RecursiveCharacterTextSplitter()
+    document_chunks = text_splitter.split_documents(document)
+
+    # create a vectorstore from the chunks
+    vector_store = Chroma.from_documents(document_chunks, OpenAIEmbeddings())
+    return vector_store
+
+
+def get_context_retriever_chain(vectore_store):
+    llm = ChatOpenAI()
+    retriever = vector_store.as_retriever()
+
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            MessagesPlaceholder(variable_name="chat_history"),
+            ("user", "{input}"),
+            (
+                "user",
+                "Given the above conversation, genarate a search query to look up in order to get information relevant to the conversation",
+            ),
+        ]
+    )
+    retriever_chain = create_history_aware_retriever(llm, retriever, prompt)
+
+    return retriever_chain
 
 
 # app.config
@@ -33,15 +67,21 @@ if website_url is None or website_url == "":
     st.info("please insert a website url")
 
 else:
-    documents = get_vectorstore_from_url(website_url)
-    with st.sidebar:
-        st.write(documents)
+    vector_store = get_vectorstore_from_url(website_url)
+    retriever_chain = get_context_retriever_chain(vector_store)
+
     # user input
     user_query = st.chat_input("type message here...")
     if user_query is not None and user_query != "":
         response = get_response(user_query)
         st.session_state.chat_history.append(HumanMessage(content=user_query))
         st.session_state.chat_history.append(AIMessage(content=response))
+
+        retrieved_documents = retriever_chain.invoke(
+            {"chat_history": st.session_state.chat_history, "input": user_query}
+        )
+        st.write(retrieved_documents)
+
 
 # conversation
 for message in st.session_state.chat_history:
@@ -52,6 +92,3 @@ for message in st.session_state.chat_history:
     elif isinstance(message, HumanMessage):
         with st.chat_message("Human"):
             st.write(message.content)
-
-# with st.sidebar:
-#    st.write(st.session_state.chat_history)
