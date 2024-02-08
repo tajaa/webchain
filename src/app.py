@@ -1,9 +1,17 @@
 import streamlit as st
+from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.messages import AIMessage, HumanMessage
 
 
 def get_response(user_input):
     return "i don't know"
+
+
+def get_vectorstore_from_url(url):
+    # get text in document forms
+    loader = WebBaseLoader(url)
+    documents = loader.load()
+    return documents
 
 
 # app.config
@@ -25,6 +33,9 @@ if website_url is None or website_url == "":
     st.info("please insert a website url")
 
 else:
+    documents = get_vectorstore_from_url(website_url)
+    with st.sidebar:
+        st.write(documents)
     # user input
     user_query = st.chat_input("type message here...")
     if user_query is not None and user_query != "":
