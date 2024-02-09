@@ -10,7 +10,6 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 load_dotenv()
-# client = OpenAI(api_key=os.getenv("OPENAI_KEY"))
 
 
 def get_vectorstore_from_url(url):
@@ -87,11 +86,6 @@ def get_response(user_input):
 st.set_page_config(page_title="Chat with websites", page_icon="🤖")
 
 st.title("Chat with websites")
-
-# if "chat_history" not in st.session_state:
-#    st.session_state.chat_history = [
-#        AIMessage(content="Hello, I'm a bot. How can I help you?")
-#    ]
 
 # sidebar
 with st.sidebar:
