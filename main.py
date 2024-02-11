@@ -48,9 +48,10 @@ def main():
                 st.session_state.user_question = ""
 
         if chat_history.messages != []:
-            st.write("Chat history")
-            for message in chat_history.messages:
-                st.chat_message(message.type).write(message.content)
+            with chat_container:
+                st.write("Chat history")
+                for message in chat_history.messages:
+                    st.chat_message(message.type).write(message.content)
 
 
 if __name__ == "__main__":
