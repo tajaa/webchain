@@ -1,7 +1,14 @@
+import os
+
 import streamlit as st
+import yaml
 from langchain.memory import StreamlitChatMessageHistory
 
 from llm_chains import load_normal_chain
+from utils import save_chat_history_json
+
+with open("config.yaml", "r") as f:
+    config = yaml.safe_load(f)
 
 
 def load_chain(chat_history):
@@ -18,15 +25,25 @@ def set_send_input():
     clear_input_field()
 
 
-def main():
+def save_chat_history():
+    if st.session_state.history != []:
+        save_chat_history_json(
+            st.session_state.history, config["chat_history_path"] + "random2" + ".json"
+        )
 
+
+def main():
     st.title("Multi Moal local chat app")
     # just a div in html we can access later on
     chat_container = st.container()
+    st.sidebar.title("chat sessions")
+    chat_sessions = ["new_session"] + os.listdir(config["chat_history_path"])
 
     if "send_input" not in st.session_state:
         st.session_state.send_input = False
         st.session_state.user_question = ""
+
+    st.sidebar.selectbox("Select a chat sesssion", chat_sessions, key="session_key")
 
     chat_history = StreamlitChatMessageHistory(key="history")
     llm_chain = load_chain(chat_history)
@@ -42,9 +59,7 @@ def main():
 
             with chat_container:
                 # because user_input becomes user_question b4 it gets here
-                # st.chat_message("user").write(st.session_state.user_question)
                 llm_response = llm_chain.run(st.session_state.user_question)
-                # st.chat_message("ai").write(llm_response)
                 st.session_state.user_question = ""
 
         if chat_history.messages != []:
@@ -52,6 +67,10 @@ def main():
                 st.write("Chat history")
                 for message in chat_history.messages:
                     st.chat_message(message.type).write(message.content)
+
+        # print(chat_history.messages[0].dict())
+
+        save_chat_history()
 
 
 if __name__ == "__main__":
