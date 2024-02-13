@@ -25,36 +25,41 @@ def set_send_input():
     clear_input_field()
 
 
+def track_index():
+    st.session_state.session_index_tracker = st.session_state.session_key
+
+
 def save_chat_history():
     if st.session_state.history != []:
         if st.session_state.session_key == "new_session":
             # this makes the new name of session the timestamp
-            st.session_state.new_session_key = get_timestamp()
+            st.session_state.new_session_key = get_timestamp() + ".json"
             save_chat_history_json(
                 st.session_state.history,
-                config["chat_history_path"]
-                + st.session_state.new_session_key
-                + ".json",
+                config["chat_history_path"] + st.session_state.new_session_key,
             )
         else:
             save_chat_history_json(
                 st.session_state.history,
-                config["chat_history_path"] + st.session_state.session_key + ".json",
+                config["chat_history_path"] + st.session_state.session_key,
             )
 
 
 def main():
-    st.title("Multi Moal local chat app")
+    st.title("Multi Modal local chat app")
+
     # just a div in html we can access later on
     chat_container = st.container()
     st.sidebar.title("chat sessions")
     chat_sessions = ["new_session"] + os.listdir(config["chat_history_path"])
+    print(chat_sessions)
 
     if "send_input" not in st.session_state:
         st.session_state.session_key = "new_session"
         st.session_state.send_input = False
         st.session_state.user_question = ""
         st.session_state.new_session_key = None
+        st.session_state.session_index_tracker = "new_session"
 
     if (
         st.session_state.session_key == "new_session"
@@ -63,7 +68,21 @@ def main():
         st.session_state.session_index_tracker = st.session_state.new_session_key
         st.session_state.new_session_key = None
 
-    st.sidebar.selectbox("Select a chat sesssion", chat_sessions, key="session_key")
+    index = chat_sessions.index(st.session_state.session_index_tracker)
+    st.sidebar.selectbox(
+        "Select a chat sesssion",
+        chat_sessions,
+        key="session_key",
+        index=index,
+        on_change=track_index,
+    )
+
+    if st.session_state.session_key != "new_session":
+        st.session_state.history = load_chat_history_json(
+            config["chat_history_path"] + st.session_state.session_key
+        )
+    else:
+        st.session_state.history = []
 
     chat_history = StreamlitChatMessageHistory(key="history")
     llm_chain = load_chain(chat_history)
@@ -76,7 +95,6 @@ def main():
 
     if send_button or st.session_state.send_input:
         if st.session_state.user_question != "":
-
             with chat_container:
                 # because user_input becomes user_question b4 it gets here
                 llm_response = llm_chain.run(st.session_state.user_question)
