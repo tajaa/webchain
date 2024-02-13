@@ -5,7 +5,7 @@ import yaml
 from langchain.memory import StreamlitChatMessageHistory
 
 from llm_chains import load_normal_chain
-from utils import save_chat_history_json
+from utils import get_timestamp, load_chat_history_json, save_chat_history_json
 
 with open("config.yaml", "r") as f:
     config = yaml.safe_load(f)
@@ -27,9 +27,20 @@ def set_send_input():
 
 def save_chat_history():
     if st.session_state.history != []:
-        save_chat_history_json(
-            st.session_state.history, config["chat_history_path"] + "random2" + ".json"
-        )
+        if st.session_state.session_key == "new_session":
+            # this makes the new name of session the timestamp
+            st.session_state.new_session_key = get_timestamp()
+            save_chat_history_json(
+                st.session_state.history,
+                config["chat_history_path"]
+                + st.session_state.new_session_key
+                + ".json",
+            )
+        else:
+            save_chat_history_json(
+                st.session_state.history,
+                config["chat_history_path"] + st.session_state.session_key + ".json",
+            )
 
 
 def main():
@@ -40,8 +51,17 @@ def main():
     chat_sessions = ["new_session"] + os.listdir(config["chat_history_path"])
 
     if "send_input" not in st.session_state:
+        st.session_state.session_key = "new_session"
         st.session_state.send_input = False
         st.session_state.user_question = ""
+        st.session_state.new_session_key = None
+
+    if (
+        st.session_state.session_key == "new_session"
+        and st.session_state.new_session_key != None
+    ):
+        st.session_state.session_index_tracker = st.session_state.new_session_key
+        st.session_state.new_session_key = None
 
     st.sidebar.selectbox("Select a chat sesssion", chat_sessions, key="session_key")
 
