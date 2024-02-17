@@ -3,7 +3,10 @@ import os
 import streamlit as st
 import yaml
 from langchain.memory import StreamlitChatMessageHistory
+from numpy import transpose
+from streamlit_mic_recorder import mic_recorder
 
+from audio_handler import transcribe_audio
 from llm_chains import load_normal_chain
 from utils import get_timestamp, load_chat_history_json, save_chat_history_json
 
@@ -91,14 +94,27 @@ def main():
         "type msg here", key="user_input", on_change=set_send_input
     )
 
-    send_button = st.button("send", key="send_button")
+    # voice recording
+    voice_recording_column, send_button_column = st.columns(2)
+    with voice_recording_column:
+        voice_recording = mic_recorder(
+            start_prompt="Start recording", stop_prompt="Stop recording"
+        )
+
+    with send_button_column:
+        send_button = st.button("send", key="send_button", on_click=clear_input_field)
+
+    # print(voice_recording)
+    if voice_recording:
+        transcribed_audio = transcribe_audio(voice_recording["bytes"])
+        print(transcribed_audio)
+        llm_chain.run(transcribed_audio)
 
     if send_button or st.session_state.send_input:
         if st.session_state.user_question != "":
-            with chat_container:
-                # because user_input becomes user_question b4 it gets here
-                llm_response = llm_chain.run(st.session_state.user_question)
-                st.session_state.user_question = ""
+            # because user_input becomes user_question b4 it gets here
+            llm_response = llm_chain.run(st.session_state.user_question)
+            st.session_state.user_question = ""
 
         if chat_history.messages != []:
             with chat_container:
