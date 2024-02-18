@@ -55,7 +55,7 @@ def main():
     chat_container = st.container()
     st.sidebar.title("chat sessions")
     chat_sessions = ["new_session"] + os.listdir(config["chat_history_path"])
-    print(chat_sessions)
+    # print(chat_sessions)
 
     if "send_input" not in st.session_state:
         st.session_state.session_key = "new_session"
@@ -98,16 +98,25 @@ def main():
     voice_recording_column, send_button_column = st.columns(2)
     with voice_recording_column:
         voice_recording = mic_recorder(
-            start_prompt="Start recording", stop_prompt="Stop recording"
+            start_prompt="Start recording", stop_prompt="Stop recording", just_once=True
         )
 
     with send_button_column:
         send_button = st.button("send", key="send_button", on_click=clear_input_field)
 
+        # uplaod and transcribe messages
+    uploaded_audio = st.file_uploader(
+        "upload an audio file", type=["wav", "mp3", "ogg"]
+    )
+    if uploaded_audio:
+        transcribed_audio = transcribe_audio(voice_recording["bytes"])
+        print(transcribed_audio)
+        llm_chain.run(transcribed_audio)
+
     # print(voice_recording)
     if voice_recording:
         transcribed_audio = transcribe_audio(voice_recording["bytes"])
-        print(transcribed_audio)
+        # print(transcribed_audio)
         llm_chain.run(transcribed_audio)
 
     if send_button or st.session_state.send_input:
