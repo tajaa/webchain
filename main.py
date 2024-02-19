@@ -105,13 +105,13 @@ def main():
         send_button = st.button("send", key="send_button", on_click=clear_input_field)
 
         # uplaod and transcribe messages
-    uploaded_audio = st.file_uploader(
+    uploaded_audio = st.sidebar.file_uploader(
         "upload an audio file", type=["wav", "mp3", "ogg"]
     )
     if uploaded_audio:
-        transcribed_audio = transcribe_audio(voice_recording["bytes"])
+        transcribed_audio = transcribe_audio(uploaded_audio.getvalue())
         print(transcribed_audio)
-        llm_chain.run(transcribed_audio)
+        llm_chain.run("summarize this text: " + transcribed_audio)
 
     # print(voice_recording)
     if voice_recording:
