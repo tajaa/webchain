@@ -32,6 +32,9 @@ def track_index():
     st.session_state.session_index_tracker = st.session_state.session_key
 
 
+# logic to prevent file from beign retranscribed
+
+
 def save_chat_history():
     if st.session_state.history != []:
         if st.session_state.session_key == "new_session":
