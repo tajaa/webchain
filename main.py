@@ -7,6 +7,7 @@ from numpy import transpose
 from streamlit_mic_recorder import mic_recorder
 
 from audio_handler import transcribe_audio
+from image_handler import handle_image
 from llm_chains import load_normal_chain
 from utils import get_timestamp, load_chat_history_json, save_chat_history_json
 
@@ -111,6 +112,9 @@ def main():
     uploaded_audio = st.sidebar.file_uploader(
         "upload an audio file", type=["wav", "mp3", "ogg"]
     )
+    uploaded_image = st.sidebar.file_uploader(
+        "upload an image file", type=["jpg", "jpeg", "png"]
+    )
     if uploaded_audio:
         transcribed_audio = transcribe_audio(uploaded_audio.getvalue())
         print(transcribed_audio)
@@ -123,6 +127,18 @@ def main():
         llm_chain.run(transcribed_audio)
 
     if send_button or st.session_state.send_input:
+        if uploaded_image:
+            with st.spinner("Processing image..."):
+                user_message = "Describe this image in detail please"
+                if st.session_state.user_question != "":
+                    user_message = st.session_state.user_question
+                    st.session_state.user_question = ""
+                llm_answer = handle_image(
+                    uploaded_image.getvalue(), st.session_state.user_question
+                )
+                chat_history.add_user_message(user_message)
+                chat_history.add_ai_message(llm_answer)
+
         if st.session_state.user_question != "":
             # because user_input becomes user_question b4 it gets here
             llm_response = llm_chain.run(st.session_state.user_question)
