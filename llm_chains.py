@@ -49,8 +49,16 @@ def load_normal_chain(chat_history):
     return chatChain(chat_history)
 
 
-class chatChain:
+def load_vectordb(embeddings):
+    persistent_client = chromadb.PersistentClient("chroma_db")
 
+    langchain_chroma = Chroma(
+        client=persistent_client, collection_name="pdfs", embedding_function=embeddings
+    )
+    return langchain_chroma
+
+
+class chatChain:
     def __init__(self, chat_history):
         self.memory = create_chat_memory(chat_history)
         llm = create_llm()
